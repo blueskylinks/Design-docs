@@ -1,0 +1,9 @@
+1. Undersdanding of BLE https://developer.android.com/guide/topics/connectivity/bluetooth-le.html
+2. https://os.mbed.com/compiler/#nav:/mbed-os-example-ble-LED/source/main.cpp;       
+    Please go through the code and try to understand about the code, you can compile the code and generate the .hex file, send this .hex file
+    to the module we have with us using usb
+    we can start scanning that device using the nrf connect android app
+    https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en
+    Next - we need to build our own app to scan the BLE devices
+    
+    
