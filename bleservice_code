@@ -1,0 +1,294 @@
+/* mbed Microcontroller Library
+ * Copyright (c) 2006-2013 ARM Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <events/mbed_events.h>
+#include <mbed.h>
+#include "ble/BLE.h"
+#include "LEDService.h"
+
+DigitalOut alivenessLED(LED1, 0);
+DigitalOut l1(P0_3);
+DigitalOut l2(P0_4);
+DigitalOut fan_out[] = {P0_22, P0_23, P0_24};
+//DigitalOut f0(P0_22, 0);
+//DigitalOut f1(P0_23, 0);
+//DigitalOut f2(P0_24, 0);
+int current_f1_status=2;
+int f1_max_limit=2;
+int f1_min_limit=0;
+int j,fj,i;
+
+InterruptIn event_fan1(BUTTON2);
+InterruptIn event_fan2(BUTTON4);
+InterruptIn event_led1(BUTTON1);
+InterruptIn event_led2(BUTTON2);
+
+uint16_t customServiceUUID  = 0xB000;
+uint16_t readCharUUID       = 0xB001;
+uint16_t writeCharUUID      = 0xB002;
+
+const static char     DEVICE_NAME[] = "BLLLR1";
+static const uint16_t uuid16_list[] = {LEDService::LED_SERVICE_UUID};
+
+uint8_t AdvData[5] = {0x00,0x00,0x00,0x00,0x00};
+
+
+void trigger_fan_sw_low()
+{
+    printf("DOWN.....\r\n");
+    l2=!l2;
+    
+   while(current_f1_status>f1_min_limit)
+    {
+            current_f1_status--;
+             for(j=0;j<=f1_max_limit;j++)
+             {
+               if(current_f1_status==j)
+                    fan_out[j]=1;
+                else
+                    fan_out[j]=0;
+            
+             } 
+    }
+}
+
+void trigger_fan_sw_high()
+{
+    printf("DOWN.....\r\n");
+    l2=!l2;
+    
+   while(current_f1_status>f1_min_limit)
+    {
+            current_f1_status--;
+             for(j=0;j<=f1_max_limit;j++)
+             {
+               if(current_f1_status==j)
+                    fan_out[j]=1;
+                else
+                    fan_out[j]=0;
+            
+             } 
+    }
+}
+
+/* Set Up custom Characteristics */
+static uint8_t readValue[10] = {0};
+ReadOnlyArrayGattCharacteristic<uint8_t, sizeof(readValue)> readChar(readCharUUID, readValue);
+
+static uint8_t writeValue[10] = {0};
+WriteOnlyArrayGattCharacteristic<uint8_t, sizeof(writeValue)> writeChar(writeCharUUID, writeValue);
+
+/* Set up custom service */
+GattCharacteristic *characteristics[] = {&readChar, &writeChar};
+GattService        customService(customServiceUUID, characteristics, sizeof(characteristics) / sizeof(GattCharacteristic *));
+
+
+static EventQueue eventQueue(/* event count */ 10 * EVENTS_EVENT_SIZE);
+
+LEDService *ledServicePtr;
+
+void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
+{
+    (void) params;
+    BLE::Instance().gap().setTxPower(0);
+    BLE::Instance().gap().startAdvertising();
+}
+
+void blinkCallback(void)
+{
+    alivenessLED = !alivenessLED; /* Do blinky on LED1 to indicate system aliveness. */
+}
+
+/**
+ * This callback allows the LEDService to receive updates to the ledState Characteristic.
+ *
+ * @param[in] params
+ *     Information about the characterisitc being updated.
+ */
+void onDataWrittenCallback(const GattWriteCallbackParams *params) {
+    printf("Data receive started \r\n");
+    printf("Data: %d%d\r\n",params->data[0],params->data[1],params->data[2]);
+    int data_len=params->len;
+    printf("Length: %d \r\n", data_len);
+    /*if ((params->handle == ledServicePtr->getValueHandle())) {
+        printf("Data received :%c\r\n",params->data);
+        int bytesRead = params->len;
+        printf("Data received :");
+        l2 = *(params->data);
+    }*/
+    if(params->len == 1)
+    {
+    int data1 = params->data[0];
+    switch (data1) {
+                case 97:
+                    AdvData[2]= 0x01;
+                    l1=0;
+                    break;
+                case 98:
+                    AdvData[3]= 0x01;
+                    l2=0;
+                    break;
+                case 65:
+                    AdvData[2]= 0x00;
+                    printf("Success: \r\n");
+                    l2=1;
+                    break;
+                case 66:
+                    AdvData[3]= 0x00;
+                    printf("Success: \r\n");
+                    l2=1;
+                    break;
+                case 120:
+                    printf("Increment \r\n");
+                    trigger_fan_sw_low();
+                    break;
+                case 121:
+                    printf("Decrement \r\n");
+                    break;
+                }
+    }
+    else
+    {
+        printf("Two Data: \r\n");
+        int data2 = params->data[0];
+        switch (data2){
+        case 1:
+            printf("Increment \r\n");
+            break;
+        case 2:
+            printf("Decrement \r\n");
+            break;  
+        }      
+    }               
+            
+}
+
+
+/**
+ * This function is called when the ble initialization process has failled
+ */
+void onBleInitError(BLE &ble, ble_error_t error)
+{
+    /* Initialization error handling should go here */
+}
+
+/**
+ * Callback triggered when the ble initialization process has finished
+ */
+void bleInitComplete(BLE::InitializationCompleteCallbackContext *params)
+{
+    BLE&        ble   = params->ble;
+    ble_error_t error = params->error;
+
+    if (error != BLE_ERROR_NONE) {
+        /* In case of error, forward the error handling to onBleInitError */
+        onBleInitError(ble, error);
+        return;
+    }
+
+    /* Ensure that it is the default instance of BLE */
+    if(ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+        return;
+    }
+
+    ble.gap().onDisconnection(disconnectionCallback);
+    ble.gattServer().onDataWritten(onDataWrittenCallback);
+
+    bool initialValueForLEDCharacteristic = false;
+    ledServicePtr = new LEDService(ble, initialValueForLEDCharacteristic);
+
+    /* setup advertising */
+    ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
+    ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_16BIT_SERVICE_IDS, (uint8_t *)uuid16_list, sizeof(uuid16_list));
+    ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LOCAL_NAME, (uint8_t *)DEVICE_NAME, sizeof(DEVICE_NAME));
+    ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
+    ble.gap().setAdvertisingInterval(100); /* 1000ms. */
+    ble.gap().setTxPower(0);
+    ble.gap().startAdvertising();
+}
+
+void scheduleBleEventsProcessing(BLE::OnEventsToProcessCallbackContext* context) {
+    BLE &ble = BLE::Instance();
+    eventQueue.call(Callback<void()>(&ble, &BLE::processEvents));
+}
+
+void trigger_led1()
+{
+    l1 = !l1;
+
+}
+
+void trigger_led2()
+{
+    l2 = !l2;
+
+}
+
+void trigger_fan_sw1()
+{
+    
+}
+
+void trigger_fan_sw2()
+{
+    
+}
+
+//initilize
+void initilize_f1()
+{
+    printf("initilize \r\n");
+    switch(current_f1_status)
+    {
+        case 0:
+                fan_out[0]=1;
+               //  printf("\n fo=%d",f0);
+                break;
+        case 1:  
+                fan_out[1]=1;
+              //  printf("\n f1=%d",f1);
+                break;
+        case 2:
+                fan_out[2]=1;
+             //   printf("\n f2=%d",f2);
+                break;
+        }
+        
+}
+
+// Function to reduce the FAN speed
+
+
+int main()
+{
+    printf("BLE DEVICE INTILIZE\r\n");
+    eventQueue.call_every(500, blinkCallback);
+    
+    
+    event_led1.rise(&trigger_led1);
+    event_led1.rise(&trigger_led2);
+    
+    event_fan1.rise(&trigger_fan_sw_low);
+
+    BLE &ble = BLE::Instance();
+    ble.onEventsToProcess(scheduleBleEventsProcessing);
+    ble.init(bleInitComplete);
+    initilize_f1();
+
+    eventQueue.dispatch_forever();
+
+    return 0;
+}
