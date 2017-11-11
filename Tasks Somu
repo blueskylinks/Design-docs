@@ -1,2 +1,40 @@
 MBED Api Learning. 
 CPP programming KT from Shruti
+
+
+This is code for the output I suggested
+
+void trigger_fan_sw_high()
+{
+    //printf("UP.....\r\n");
+    l1=!l1;
+    
+    if(current_f1_status<f1_max_limit)
+    {
+            current_f1_status++;
+             for(j=0;j<=f1_max_limit;j++)
+             {
+               if(current_f1_status==j)
+                    fan_out[j]=1;
+                //else
+                    //fan_out[j]=0;
+             } 
+    }
+}
+
+void trigger_fan_sw_low()
+{
+    if(current_f1_status>=f1_min_limit)
+    {
+            //current_f1_status--;
+             for(j=0;j<=f1_max_limit;j++)
+             {
+               if(current_f1_status==j)
+                    fan_out[j]=0;
+                //else
+                    //fan_out[j]=0;
+            
+             } 
+             current_f1_status--; 
+    }
+}
