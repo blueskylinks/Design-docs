@@ -34,7 +34,7 @@ int j,fj,i;
 InterruptIn event_fan1(BUTTON2);
 InterruptIn event_fan2(BUTTON4);
 InterruptIn event_led1(BUTTON1);
-InterruptIn event_led2(BUTTON2);
+InterruptIn event_led2(BUTTON3);
 
 uint16_t customServiceUUID  = 0xB000;
 uint16_t readCharUUID       = 0xB001;
@@ -46,12 +46,30 @@ static const uint16_t uuid16_list[] = {LEDService::LED_SERVICE_UUID};
 uint8_t AdvData[5] = {0x00,0x00,0x00,0x00,0x00};
 
 
+void trigger_fan_sw_high()
+{
+    //printf("UP.....\r\n");
+    l1=!l1;
+    
+    if(current_f1_status<f1_max_limit)
+    {
+            current_f1_status++;
+             for(j=0;j<=f1_max_limit;j++)
+             {
+               if(current_f1_status==j)
+                    fan_out[j]=1;
+                else
+                    fan_out[j]=0;
+             } 
+    }
+}
+
 void trigger_fan_sw_low()
 {
-    printf("DOWN.....\r\n");
+    //printf("DOWN.....\r\n");
     l2=!l2;
     
-   while(current_f1_status>f1_min_limit)
+    if(current_f1_status>f1_min_limit)
     {
             current_f1_status--;
              for(j=0;j<=f1_max_limit;j++)
@@ -65,24 +83,8 @@ void trigger_fan_sw_low()
     }
 }
 
-void trigger_fan_sw_high()
-{
-    printf("DOWN.....\r\n");
-    l2=!l2;
-    
-   while(current_f1_status>f1_min_limit)
-    {
-            current_f1_status--;
-             for(j=0;j<=f1_max_limit;j++)
-             {
-               if(current_f1_status==j)
-                    fan_out[j]=1;
-                else
-                    fan_out[j]=0;
-            
-             } 
-    }
-}
+
+
 
 /* Set Up custom Characteristics */
 static uint8_t readValue[10] = {0};
@@ -119,10 +121,10 @@ void blinkCallback(void)
  *     Information about the characterisitc being updated.
  */
 void onDataWrittenCallback(const GattWriteCallbackParams *params) {
-    printf("Data receive started \r\n");
-    printf("Data: %d%d\r\n",params->data[0],params->data[1],params->data[2]);
+    //printf("Data receive started \r\n");
+    //printf("Data: %d%d\r\n",params->data[0],params->data[1],params->data[2]);
     int data_len=params->len;
-    printf("Length: %d \r\n", data_len);
+    //printf("Length: %d \r\n", data_len);
     /*if ((params->handle == ledServicePtr->getValueHandle())) {
         printf("Data received :%c\r\n",params->data);
         int bytesRead = params->len;
@@ -143,33 +145,34 @@ void onDataWrittenCallback(const GattWriteCallbackParams *params) {
                     break;
                 case 65:
                     AdvData[2]= 0x00;
-                    printf("Success: \r\n");
+                    //printf("Success: \r\n");
                     l2=1;
                     break;
                 case 66:
                     AdvData[3]= 0x00;
-                    printf("Success: \r\n");
+                    //printf("Success: \r\n");
                     l2=1;
                     break;
                 case 120:
-                    printf("Increment \r\n");
-                    trigger_fan_sw_low();
+                    //printf("Increment \r\n");
+                    trigger_fan_sw_high();
                     break;
                 case 121:
-                    printf("Decrement \r\n");
+                    //printf("Decrement \r\n");
+                    trigger_fan_sw_low();
                     break;
                 }
     }
     else
     {
-        printf("Two Data: \r\n");
+        //printf("Two Data: \r\n");
         int data2 = params->data[0];
         switch (data2){
         case 1:
-            printf("Increment \r\n");
+            //printf("Increment \r\n");
             break;
         case 2:
-            printf("Decrement \r\n");
+            //printf("Decrement \r\n");
             break;  
         }      
     }               
@@ -237,20 +240,11 @@ void trigger_led2()
 
 }
 
-void trigger_fan_sw1()
-{
-    
-}
-
-void trigger_fan_sw2()
-{
-    
-}
 
 //initilize
 void initilize_f1()
 {
-    printf("initilize \r\n");
+    //printf("initilize \r\n");
     switch(current_f1_status)
     {
         case 0:
@@ -274,14 +268,15 @@ void initilize_f1()
 
 int main()
 {
-    printf("BLE DEVICE INTILIZE\r\n");
+    //printf("BLE DEVICE INTILIZE\r\n");
     eventQueue.call_every(500, blinkCallback);
     
     
     event_led1.rise(&trigger_led1);
-    event_led1.rise(&trigger_led2);
+    event_led2.rise(&trigger_led2);
     
-    event_fan1.rise(&trigger_fan_sw_low);
+    event_fan1.rise(&trigger_fan_sw_high);
+    event_fan2.rise(&trigger_fan_sw_low);
 
     BLE &ble = BLE::Instance();
     ble.onEventsToProcess(scheduleBleEventsProcessing);
