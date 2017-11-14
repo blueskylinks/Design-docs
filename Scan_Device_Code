@@ -1,0 +1,138 @@
+package com.bleskylinks.scan_ble_test;
+
+import android.annotation.TargetApi;
+import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.ParcelUuid;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanRecord;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
+
+import java.util.ArrayList;
+
+
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+public class MainActivity extends AppCompatActivity {
+
+    private BluetoothManager mBluetoothManager;
+    private BluetoothAdapter mBluetoothAdapter;
+    //private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
+    //private BluetoothDevice ble_device;
+
+    BluetoothLeScanner scanner;
+    //TextView ble_status;
+    TextView text_ble_scandata;
+    ScanRecord scan_rec;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        text_ble_scandata = (TextView) findViewById(R.id.scan_rec_text);
+        initialize();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Toast.makeText(this, "App Resumed..", Toast.LENGTH_SHORT).show();
+    }
+
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Toast.makeText(this, "App Paused..", Toast.LENGTH_SHORT).show();
+    }
+
+    // ============Initilize BLE ===========================
+    public boolean initialize() {
+        // For API level 18 and above, get a reference to BluetoothAdapter through
+        // BluetoothManager.
+        Log.i("BleScanning:", "initilizing.......");
+        if (mBluetoothManager == null) {
+            mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+            if (mBluetoothManager == null) {
+                Log.i("BleScanning:", "Unable to initialize BluetoothManager.");
+                return false;
+            }
+        }
+
+        mBluetoothAdapter = mBluetoothManager.getAdapter();
+        if (mBluetoothAdapter == null) {
+            Log.i("BleScanning:", "Unable to obtain a BluetoothAdapter.");
+            return false;
+        }
+
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+            //Bluetooth is disabled
+            mBluetoothAdapter.enable();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return true;
+    }
+
+
+    //================  Start BLE Scanning  ===============
+    public void startscand(View v1) {
+        Log.i("BLE------", "Start Scanning");
+        //final ParcelUuid UID_SERVICE =
+                ParcelUuid.fromString("000000f1-0000-1000-8000-00805f9b34fb");
+        scanner = mBluetoothAdapter.getBluetoothLeScanner();
+        ScanFilter beaconFilter = new ScanFilter.Builder()
+                //.setServiceUuid(UID_SERVICE)
+                .build();
+        ArrayList<ScanFilter> filters = new ArrayList<ScanFilter>();
+        filters.add(beaconFilter);
+        ScanSettings settings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build();
+        scanner.startScan(filters, settings, mcallback);
+    }
+
+    // =============== BLE Callback =======================
+    public ScanCallback mcallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            int rssi;
+            rssi = result.getRssi();
+            scan_rec = result.getScanRecord();
+            text_ble_scandata.setText(String.valueOf(rssi) + scan_rec.toString());
+        }
+
+
+    };
+
+
+
+
+
+}
