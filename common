@@ -4,3 +4,14 @@ https://www.ibm.com/developerworks/mydeveloperworks/blogs/aimsupport/entry/what_
 https://devzone.nordicsemi.com/tutorials/7/development-with-gcc-and-eclipse/
 
 Uri mediaPath = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.song);
+
+
+mMediaPlayer = new MediaPlayer();
+Uri mediaPath = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.filename);
+try {
+    mMediaPlayer.setDataSource(getApplicationContext(), mediaPath);
+    mMediaPlayer.prepare();
+    mMediaPlayer.start();
+} catch (Exception e) {
+    e.printStackTrace();
+}
