@@ -2,3 +2,5 @@ Learn about MQTT (Message Broker)
 https://www.ibm.com/developerworks/mydeveloperworks/blogs/aimsupport/entry/what_is_mqtt_and_how_does_it_work_with_websphere_mq?lang=en
 
 https://devzone.nordicsemi.com/tutorials/7/development-with-gcc-and-eclipse/
+
+Uri mediaPath = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.song);
