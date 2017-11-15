@@ -15,3 +15,27 @@ try {
 } catch (Exception e) {
     e.printStackTrace();
 }
+
+
+// medhod for playing file from sdcard
+
+// Menifest Permisstions
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+public void play_audio(View v1){
+        mMediaPlayer = new MediaPlayer();
+        //Uri mediaPath = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.song);
+        //String baseDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+        try {
+            //Log.i("Path....", baseDir);
+            mMediaPlayer.setDataSource("/mnt/sdcard/media/ring.wav");
+            mMediaPlayer.prepare();
+            mMediaPlayer.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
