@@ -37,5 +37,20 @@ public void play_audio(View v1){
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+  
+  
+  // Permission at runtime
+  
+      protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        text_ble_scandata = (TextView) findViewById(R.id.scan_rec_text);
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},200);
+        ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},200);
+        initialize();
+    }
 
     }
