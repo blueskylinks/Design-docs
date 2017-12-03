@@ -5,30 +5,7 @@
     we can start scanning that device using the nrf connect android app
     https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en
     Next - we need to build our own app to scan the BLE devices
-3. P1 - Nov 06 : 
-//simulate the below mentioend cpp code and demonstrate the output
 
-int l0,l1,l2,l3,l4,l5,l6;
-
-int current_f1_status=0;
-int f1_max_limit=6;
-int f1_min_limit=0;
-initilize_f1()
-{
-//set the variable lx to the 1 based on current status, for eg, if the current_f1_status=2, set the l2=1 and all other to 0
-}
-
-increment_f1()
-{
-//whenever this function is called, we should increment the current_f1_status+1 only until f1_max_limit and again set the respective 
-//lx status = 1 and all other to 0
-}
-
-decerement_f()
-{
-//whenever this function is called, we should decerement the current_f1_status-1 only until f1_min_limit and again set the respective 
-//lx status = 1 and all other to 0
-}
 
     
     
