@@ -1,0 +1,214 @@
+package com.blueskylinks.sms.example3;
+
+import android.Manifest;
+import android.annotation.TargetApi;
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
+import android.bluetooth.le.ScanRecord;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Handler;
+import android.os.ParcelUuid;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
+@TargetApi(Build.VERSION_CODES.LOLLIPOP)
+public class MainActivity extends AppCompatActivity {
+   // private BluetoothAdapter mBluetoothAdapter;
+    private int REQUEST_ENABLE_BT = 1;
+    private Handler mHandler;
+    private static final long SCAN_PERIOD = 1000;
+    private BluetoothLeScanner mLEScanner;
+    private ScanSettings settings;
+    private List<ScanFilter> filters;
+    private BluetoothGatt mGatt;
+
+
+        private BluetoothManager mBluetoothManager;
+        private BluetoothAdapter mBluetoothAdapter;
+        //private BluetoothLeAdvertiser mBluetoothLeAdvertiser;
+        //private BluetoothDevice ble_device;
+
+        BluetoothLeScanner scanner;
+        //TextView ble_status;
+        TextView text_ble_scandata;
+        ScanRecord scan_rec;
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_main);
+            text_ble_scandata = (TextView) findViewById(R.id.scan_rec_text);
+            initialize();
+        }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Toast.makeText(this, "App Paused..", Toast.LENGTH_SHORT).show();
+    }
+
+        @Override
+        protected void onResume() {
+            super.onResume();
+            Toast.makeText(this, "App Resumed..", Toast.LENGTH_SHORT).show();
+        }
+
+
+
+
+
+        // ============Initilize BLE ===========================
+        public boolean initialize() {
+            // For API level 18 and above, get a reference to BluetoothAdapter through
+            // BluetoothManager.
+            Log.i("BleScanning:", "initilizing.......");
+            if (mBluetoothManager == null) {
+                mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+                if (mBluetoothManager == null) {
+                    Log.i("BleScanning:", "Unable to initialize BluetoothManager.");
+                    return false;
+                }
+            }
+
+            mBluetoothAdapter = mBluetoothManager.getAdapter();
+            if (mBluetoothAdapter == null) {
+                Log.i("BleScanning:", "Unable to obtain a BluetoothAdapter.");
+                return false;
+            }
+
+            if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
+                //Bluetooth is disabled
+                mBluetoothAdapter.enable();
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return true;
+        }
+
+
+        //================  Start BLE Scanning  ===============
+        public void startscand(View v1) {
+            Log.i("BLE------", "Start Scanning");
+            //final ParcelUuid UID_SERVICE =
+            ParcelUuid.fromString("000000f1-0000-1000-8000-00805f9b34fb");
+            scanner = mBluetoothAdapter.getBluetoothLeScanner();
+            ScanFilter beaconFilter = new ScanFilter.Builder()
+                    //.setServiceUuid(UID_SERVICE)
+                    .build();
+            ArrayList<ScanFilter> filters = new ArrayList<>();
+            filters.add(beaconFilter);
+            ScanSettings settings = new ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .build();
+            scanner.startScan(filters, settings, mScanCallback);
+        }
+
+
+    private ScanCallback mScanCallback = new ScanCallback() {
+        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            Log.i("callbackType", String.valueOf(callbackType));
+            Log.i("result", result.toString());
+            BluetoothDevice btDevice = result.getDevice();
+            scan_rec=result.getScanRecord();
+
+            text_ble_scandata.setText(scan_rec.toString());
+          // if(R.id.bt_connect==0)
+            connectToDevice(btDevice);
+        }
+
+        @Override
+        public void onBatchScanResults(List<ScanResult> results) {
+            for (ScanResult sr : results) {
+                Log.i("ScanResult - Results", sr.toString());
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.e("Scan Failed", "Error Code: " + errorCode);
+        }
+    };
+
+    /*private BluetoothAdapter.LeScanCallback mLeScanCallback =
+            new BluetoothAdapter.LeScanCallback() {
+                @Override
+                public void onLeScan(final BluetoothDevice device, int rssi,
+                                     byte[] scanRecord) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.i("onLeScan", device.toString());
+                            connectToDevice(device);
+                        }
+                    });
+                }
+            };*/
+
+    public void connectToDevice(BluetoothDevice device) {
+        if (mGatt == null) {
+            mGatt = device.connectGatt(this, false, gattCallback);
+           // scanLeDevice(false);// will stop after first device detection
+        }
+    }
+
+    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            Log.i("onConnectionStateChange", "Status: " + status);
+            switch (newState) {
+                case BluetoothProfile.STATE_CONNECTED:
+                    Log.i("gattCallback", "STATE_CONNECTED");
+                    gatt.discoverServices();
+                    break;
+                case BluetoothProfile.STATE_DISCONNECTED:
+                    Log.e("gattCallback", "STATE_DISCONNECTED");
+                    break;
+                default:
+                    Log.e("gattCallback", "STATE_OTHER");
+            }
+
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            List<BluetoothGattService> services = gatt.getServices();
+            Log.i("onServicesDiscovered", services.toString());
+            gatt.readCharacteristic(services.get(1).getCharacteristics().get
+                    (0));
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt,
+                                         BluetoothGattCharacteristic
+                                                 characteristic, int status) {
+            Log.i("onCharacteristicRead", characteristic.toString());
+            gatt.disconnect();
+        }
+    };
+}
